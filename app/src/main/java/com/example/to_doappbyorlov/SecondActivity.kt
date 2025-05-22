@@ -21,7 +21,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.to_doappbyorlov.databinding.ActivitySecondBinding
 import com.example.to_doappbyorlov.databinding.ItemTagBinding
+import com.example.to_doappbyorlov.network.AdviceSlipResponse
+import com.example.to_doappbyorlov.network.RetrofitClient
 import com.google.gson.Gson
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.util.*
 
 class SecondActivity : ComponentActivity() {
@@ -37,6 +42,8 @@ class SecondActivity : ComponentActivity() {
         binding = ActivitySecondBinding.inflate(layoutInflater)
         setContentView(binding.root)
         binding.root.setBackgroundColor(android.graphics.Color.WHITE)
+
+        fetchAdvice()
 
         val maxDescriptionFilter = InputFilter.LengthFilter(50)
         val maxLengthFilter = InputFilter.LengthFilter(35)
@@ -180,6 +187,32 @@ class SecondActivity : ComponentActivity() {
         binding.btnBack.setOnClickListener {
             finish()
         }
+    }
+
+    private fun fetchAdvice() {
+        RetrofitClient.instance.getRandomAdvice().enqueue(object : Callback<AdviceSlipResponse> {
+            override fun onResponse(call: Call<AdviceSlipResponse>, response: Response<AdviceSlipResponse>) {
+                if (response.isSuccessful) {
+                    val advice = response.body()?.slip?.advice
+                    if (advice != null) {
+                        binding.tvAdvice.text = advice
+                    } else {
+                        binding.tvAdvice.text = "Не вдалося завантажити пораду"
+                        Toast.makeText(this@SecondActivity, "Помилка: порожня відповідь", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    binding.tvAdvice.text = "Не вдалося завантажити пораду"
+                    Toast.makeText(this@SecondActivity, "Помилка завантаження: ${response.code()}", Toast.LENGTH_SHORT).show()
+                    Log.e("SecondActivity", "API Error: ${response.code()} - ${response.message()}")
+                }
+            }
+
+            override fun onFailure(call: Call<AdviceSlipResponse>, t: Throwable) {
+                binding.tvAdvice.text = "Не вдалося завантажити пораду"
+                Toast.makeText(this@SecondActivity, "Помилка мережі: не вдалося завантажити пораду.", Toast.LENGTH_SHORT).show()
+                Log.e("SecondActivity", "API Failure: ", t)
+            }
+        })
     }
 
     private fun updateDateTimeDisplay() {
